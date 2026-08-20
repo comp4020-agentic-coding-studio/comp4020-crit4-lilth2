@@ -37,6 +37,10 @@ header {
   padding: 0.75rem 1.25rem;
   z-index: 2;
   pointer-events: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 header nav a {
@@ -46,6 +50,54 @@ header nav a {
   font-size: 0.9rem;
   letter-spacing: 0.04em;
   pointer-events: auto;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 0.3rem;
+  pointer-events: auto;
+  background: rgba(10, 13, 22, 0.4);
+  border-radius: 999px;
+  padding: 0.2rem;
+}
+
+.mode-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: #dfe6f2;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.mode-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mode-btn:focus-visible {
+  outline: 2px solid rgba(140, 180, 255, 0.8);
+  outline-offset: 1px;
+}
+
+.mode-btn[aria-pressed="true"] {
+  background: rgba(255, 224, 150, 0.18);
+  border-color: rgba(255, 224, 150, 0.55);
+  color: #ffe8a8;
+}
+
+@media (max-width: 480px) {
+  header {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .mode-btn {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.68rem;
+  }
 }
 
 main {
@@ -58,7 +110,7 @@ main {
   height: 100%;
   touch-action: none;
   outline: none;
-  cursor: crosshair;
+  cursor: none;
 }
 
 .stage:focus-visible {
@@ -71,7 +123,8 @@ main {
   height: 100%;
 }
 
-.invite {
+.invite,
+.status {
   position: absolute;
   left: 50%;
   bottom: 8%;
@@ -81,16 +134,28 @@ main {
   font-size: 0.95rem;
   letter-spacing: 0.03em;
   color: #dfe6f2;
-  opacity: 0.75;
   text-align: center;
-  animation: pulse 3.2s ease-in-out infinite;
   transition: opacity 0.8s ease;
   pointer-events: none;
+}
+
+.invite {
+  opacity: 0.75;
+  animation: pulse 3.2s ease-in-out infinite;
 }
 
 .invite.faded {
   opacity: 0;
   animation: none;
+}
+
+.status {
+  opacity: 0;
+  color: #ffe8a8;
+}
+
+.status.visible {
+  opacity: 0.85;
 }
 
 @keyframes pulse {

@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Driftglass — a wind-chime instrument</title>
+    <title>Driftglass — a starlight instrument</title>
     <meta
       name="description"
-      content="Move the mouse, touch the screen, or hold an arrow key: chimes ring wherever you pass, tuned so nothing you play can sound wrong."
+      content="Move the mouse, touch the screen, or hold an arrow key: any star you pass rings out, tuned so nothing you play can sound wrong. Follow the glowing star for a Twinkle, Twinkle, Little Star guide, or ignore it and drift freely."
     />
 
     <meta property="og:type" content="website" />
@@ -20,6 +20,10 @@
       <nav aria-label="Primary">
         <a href="./">Driftglass</a>
       </nav>
+      <div id="mode-toggle" class="mode-toggle" data-testid="mode-toggle" role="group" aria-label="Play mode">
+        <button type="button" class="mode-btn" data-mode="guided" aria-pressed="true">Guided Twinkle</button>
+        <button type="button" class="mode-btn" data-mode="free" aria-pressed="false">Free play</button>
+      </div>
     </header>
     <main>
       <h1 class="visually-hidden">Driftglass</h1>
@@ -28,12 +32,13 @@
         class="stage"
         tabindex="0"
         data-testid="stage"
-        aria-label="Driftglass, a wind-chime instrument. Move the pointer, touch the screen, or hold an arrow key to make sound. Click, tap, or press space for a gust."
+        aria-label="Driftglass, a starlight instrument. Move the pointer, touch the screen, or hold an arrow key to sound any star. Click, tap, or press space for a gust. Follow the glowing star for the next note of a melody, or ignore it and play freely."
       >
-        <canvas id="chimes"></canvas>
+        <canvas id="sky"></canvas>
         <p id="invite" class="invite" data-testid="invite" aria-hidden="true">
-          move &middot; touch &middot; arrow keys &middot; click for a gust
+          move &middot; touch &middot; arrow keys &middot; follow the glowing star, or drift freely
         </p>
+        <p id="status" class="status" data-testid="status" aria-live="polite">Touch the glowing star.</p>
       </div>
     </main>
     <script type="module" src="./main.ts"></script>

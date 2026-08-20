@@ -3,10 +3,14 @@ import { resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 import {
+  advanceMelodyIndex,
   clamp,
   distance,
+  hexatonicScale,
   holdDurationToDecay,
-  pentatonicScale,
+  noteToHz,
+  pitchIndexForY,
+  resolveHit,
   triggerRadius,
   velocityToCutoffHz,
   velocityToGain,
@@ -32,17 +36,78 @@ describe("gesture -> sound mapping (audio-map.ts)", () => {
     expect(bright).toBeGreaterThan(dark);
   });
 
-  it("a gust reaches further than an ordinary brush", () => {
-    expect(triggerRadius(true)).toBeGreaterThan(triggerRadius(false));
+  it("trigger radii are small and ordered normal < touch < gust, within the agreed ranges", () => {
+    const normal = triggerRadius("normal");
+    const touch = triggerRadius("touch");
+    const gust = triggerRadius("gust");
+    expect(normal).toBeGreaterThanOrEqual(26);
+    expect(normal).toBeLessThanOrEqual(36);
+    expect(touch).toBeGreaterThanOrEqual(34);
+    expect(touch).toBeLessThanOrEqual(44);
+    expect(gust).toBeGreaterThanOrEqual(70);
+    expect(gust).toBeLessThanOrEqual(95);
+    expect(touch).toBeGreaterThan(normal);
+    expect(gust).toBeGreaterThan(touch);
+  });
+
+  it("resolveHit: free play never advances the guide and never scales volume down", () => {
+    expect(resolveHit("free", true)).toEqual({ gainScale: 1, advances: false });
+    expect(resolveHit("free", false)).toEqual({ gainScale: 1, advances: false });
+  });
+
+  it("resolveHit: guided mode advances only on the target, and a non-target hit is quiet, not silent or wrong", () => {
+    const onTarget = resolveHit("guided", true);
+    expect(onTarget.advances).toBe(true);
+    expect(onTarget.gainScale).toBe(1);
+
+    const offTarget = resolveHit("guided", false);
+    expect(offTarget.advances).toBe(false);
+    expect(offTarget.gainScale).toBeGreaterThan(0);
+    expect(offTarget.gainScale).toBeLessThan(0.3);
+  });
+
+  it("advanceMelodyIndex steps forward, and wraps to 0 with completed=true only at the last step", () => {
+    expect(advanceMelodyIndex(0, 5)).toEqual({ next: 1, completed: false });
+    expect(advanceMelodyIndex(3, 5)).toEqual({ next: 4, completed: false });
+    expect(advanceMelodyIndex(4, 5)).toEqual({ next: 0, completed: true });
   });
 
   it("the scale has no dissonant clash: every step is a consonant interval", () => {
-    const freqs = pentatonicScale(220, 10);
+    const freqs = hexatonicScale(220, 12);
     const CONSONANT_SEMITONES = new Set([0, 2, 3, 4, 5, 7, 8, 9, 10, 12]);
     for (let i = 1; i < freqs.length; i++) {
       const semitones = Math.round(12 * Math.log2(freqs[i] / freqs[0])) % 12;
       expect(CONSONANT_SEMITONES.has(semitones)).toBe(true);
     }
+  });
+
+  it("note names map to monotonically rising frequencies within an octave, C to G is a fifth", () => {
+    const c = noteToHz("C", 220, 3, 3);
+    const d = noteToHz("D", 220, 3, 3);
+    const e = noteToHz("E", 220, 3, 3);
+    const f = noteToHz("F", 220, 3, 3);
+    const g = noteToHz("G", 220, 3, 3);
+    const a = noteToHz("A", 220, 3, 3);
+    expect(c).toBeLessThan(d);
+    expect(d).toBeLessThan(e);
+    expect(e).toBeLessThan(f);
+    expect(f).toBeLessThan(g);
+    expect(g).toBeLessThan(a);
+    expect(g / c).toBeCloseTo(2 ** (7 / 12));
+
+    const cNextOctave = noteToHz("C", 220, 4, 3);
+    expect(cNextOctave / c).toBeCloseTo(2);
+  });
+
+  it("higher on screen means a higher pitch step, lower means lower, monotonically", () => {
+    const totalSteps = 24;
+    const top = pitchIndexForY(0, totalSteps);
+    const mid = pitchIndexForY(0.5, totalSteps);
+    const bottom = pitchIndexForY(1, totalSteps);
+    expect(top).toBeGreaterThan(mid);
+    expect(mid).toBeGreaterThan(bottom);
+    expect(top).toBe(totalSteps - 1);
+    expect(bottom).toBe(0);
   });
 
   it("distance and clamp behave as plain geometry/bounds helpers", () => {
@@ -92,12 +157,34 @@ describe("the shipped page invites play without a score or fail state", () => {
     expect(label.toLowerCase()).toMatch(/key/);
   });
 
+  it("has a live-region status node for the melody guide, distinct from the invite text", () => {
+    const status = doc!.querySelector('[data-testid="status"]');
+    expect(status, 'no element with data-testid="status"').toBeTruthy();
+    expect(status!.getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("has a Free play / Guided Twinkle mode toggle reachable without a mouse", () => {
+    const toggle = doc!.querySelector('[data-testid="mode-toggle"]');
+    expect(toggle, 'no element with data-testid="mode-toggle"').toBeTruthy();
+    const labels = Array.from(toggle!.querySelectorAll("button")).map((b) => b.textContent?.toLowerCase() ?? "");
+    expect(labels.some((l) => l.includes("guided"))).toBe(true);
+    expect(labels.some((l) => l.includes("free"))).toBe(true);
+  });
+
+  it("invites following a glowing star without requiring it, so free play is never blocked", () => {
+    const invite = doc!.querySelector('[data-testid="invite"]')?.textContent?.toLowerCase() ?? "";
+    const status = doc!.querySelector('[data-testid="status"]')?.textContent?.toLowerCase() ?? "";
+    expect(invite + status).toMatch(/star/);
+    expect(invite).toMatch(/freely|free/);
+  });
+
   it("has no score, fail, win/lose, or game-over language anywhere on the page", () => {
     const text = doc!.body.textContent?.toLowerCase() ?? "";
     expect(text).not.toMatch(/\bscore\b/);
     expect(text).not.toMatch(/game over/);
     expect(text).not.toMatch(/\byou (win|lose|lost)\b/);
     expect(text).not.toMatch(/\bfail(ed|ure)?\b/);
+    expect(text).not.toMatch(/\bwrong\b/);
   });
 
   it("ships no pre-recorded audio elements as the sound source", () => {
