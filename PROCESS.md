@@ -1,85 +1,61 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-A reading-guide to how the work came together --- a map to your process, not an
-essay about it. Markers read this file and follow its citations; they don't
-trawl the repo for evidence you didn't point at, so if a moment mattered, cite
-it.
-
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and its
-[word counts](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#word-counts)
-cover every deliverable.
-
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+Driftglass: a canvas of floating chimes tuned to a pentatonic scale. Moving
+the mouse, touching the screen, or holding an arrow key plucks whichever
+chimes you pass near — live through the Web Audio API, not a recorded sample
+— with how fast you move setting how loud and how bright the note is. A
+click, tap, or space bar is a "gust": a wider reach that also plucks the
+nearest handful of chimes as a burst, giving a second, distinct gesture on
+top of plain movement. Nothing sounds until the first gesture; there's no
+score, target, or way to play a wrong note.
 
 ## The moments that mattered
 
-Three or four for an assignment; fewer is fine for a weekly prototype. Keep the
-list short so each moment has room to do all four jobs:
+1. **Picking a concept whose risk was named up front.** I sketched six
+   directions against the brief (theremin, step sequencer, chord keyboard,
+   wind chimes, draw-a-melody, velocity synth) before writing any code, and
+   flagged wind chimes' specific failure mode: if the causal link between a
+   gesture and the sound it makes isn't unmistakable, it reads as a
+   screensaver, not an instrument. That risk shaped the build directly — the
+   glow on a plucked chime and the pulsing invite text both exist to make the
+   gesture -> sound link visible, not just audible.
+   [`5be5816...311bda2`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-lilth2/compare/5be5816...311bda2)
 
-1. **what happened** --- the problem, or the thing that went wrong
-2. **what you did instead of the obvious thing** --- the call you made, and why
-   it beat the obvious one
-3. **how you knew it was right** --- the check you ran, the viewport you looked
-   at, what you read before accepting the diff
-4. **the citation** --- a commit or commit range, a `CLAUDE.md` change, a check
-   that went from red to green, a prompt paired with the commit it produced
+2. **Designing around "the agent can't hear it" instead of ignoring it.** A
+   test suite can't judge whether Driftglass sounds harsh or expressive. So
+   the gesture->sound math (speed -> gain/brightness, gust -> radius, the
+   scale itself) lives in a DOM-free, AudioContext-free module,
+   [`audio-map.ts`](audio-map.ts), specifically so it can be unit-tested on
+   its own: monotonic louder/brighter with speed, gust reaches further than a
+   plain brush, every scale step is a consonant interval. That is the ceiling
+   of what an automated check can verify here — it can't confirm the
+   instrument *sounds* good, only that the contract behind the sound is the
+   one intended. [`5b95217`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-lilth2/commit/5b95217)
 
-Jobs 2 and 3 are the ones the repo can't tell a reader on its own, so they're
-where the marks are. The strongest moments are the ones where a correction
-landed in the **harness** --- the standards and checks your work has to satisfy
---- rather than in a retry: a rule added to `CLAUDE.md`, a check wired up, an
-attempt thrown away. Retrying until it passes is the routine case, and changing
-what the work runs against is the skilled one.
-
-Cite each moment as a link whose text is the commit hash or range and whose
-target is this repo's commit or compare URL, so a reader clicks straight to the
-evidence:
-
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
-
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
-
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the verification better than a
-sentence does. Commit the file to this repo and link it with a **relative**
-path, which is what makes it render on GitHub: `![alt text](docs/before.png)`.
-Images don't count towards the word count and don't replace the citation.
-
-### A worked moment, for shape
-
-Delete this section along with the rest of the boilerplate --- it's here to show
-the four jobs in one paragraph, not to be imitated in content.
-
-> The date formatter kept coming back with `toLocaleDateString()` and no locale
-> argument, so the same build rendered differently on my machine and in CI. I'd
-> already re-prompted it twice, which fixed the line but not the habit, so the
-> third time I put the rule in `CLAUDE.md` instead
-> ([`3f9ac21`](https://github.com/YOUR-ORG/YOUR-REPO/commit/3f9ac21)) and added
-> a spec test that fails on a bare `toLocaleDateString`. That's what told me it
-> had actually taken: the test went red against the old code and green against
-> the new, and the next two features it wrote passed it without prompting
-> ([`3f9ac21...b7e0d14`](https://github.com/YOUR-ORG/YOUR-REPO/compare/3f9ac21...b7e0d14)).
+3. **Verifying with a browser, not just a green test suite.** `pnpm check`
+   passing only proves the build and the pure-function contracts. I drove a
+   headless Chromium against the dev server at both a 1920x1080 and a
+   390x844 viewport, simulated a mouse drag and an arrow-key/space press, and
+   checked the console for errors and the invite text's fade-on-first-gesture
+   — because none of that shows up in `vitest run`. Screenshots at both sizes
+   confirmed the chimes render and glow correctly on interaction, and the
+   focus ring is visible on the stage for keyboard-only players. This is
+   still not a listening test: the audio itself needs a human ear, noted as
+   the open item below.
 
 ## Before you ship
 
-`pnpm check:evidence` verifies your citations resolve to real commits, that a
-reflection entry the marker reads is in `reflections/`, and that your
-`CLAUDE.md` is there --- before a marker ever opens the file. It checks that
-your map is traceable, not that it is good: the marker judges whether your
-small, deliberately chosen set of moments shows real judgement and reflection. A
-green check is not a substitute for that curation.
+`pnpm check` is green (typecheck, build, 26 tests across the pure mapping
+functions and the built page's structure). What it cannot verify, and what
+still needs a human pass before this is crit-ready:
 
-Images aren't checked: whether one renders is visible the moment you look. Open
-this file on GitHub and look at it before you ship.
+- **Listen to it.** Low latency, expressive rather than exhausting, not
+  harsh at high velocity, not monotonous when still — all ear-only
+  judgements. Try dragging fast vs. slow, holding still near a chime, and a
+  rapid string of clicks.
+- **Replace `public/card.png`** — it's still the starter's placeholder image,
+  not a Driftglass-specific link-preview card.
+- **Test on an actual touch device**, not just Playwright's `hasTouch`
+  emulation.
