@@ -55,3 +55,17 @@ export function detune(freq: number, randomUnit: number): number {
   const cents = (randomUnit - 0.5) * 12; // +/- 6 cents
   return freq * 2 ** (cents / 1200);
 }
+
+export function xToPan(x: number, width: number): number {
+  if (width <= 0) return 0;
+  return clamp((x / width) * 2 - 1, -1, 1);
+}
+
+const MIN_DECAY = 0.7;
+const MAX_DECAY = 3.2;
+const HOLD_NORM_MS = 1400;
+
+export function holdDurationToDecay(holdMs: number): number {
+  const norm = clamp(holdMs / HOLD_NORM_MS, 0, 1);
+  return MIN_DECAY + norm * (MAX_DECAY - MIN_DECAY);
+}

@@ -5,10 +5,12 @@ import { describe, expect, it } from "vitest";
 import {
   clamp,
   distance,
+  holdDurationToDecay,
   pentatonicScale,
   triggerRadius,
   velocityToCutoffHz,
   velocityToGain,
+  xToPan,
 } from "../audio-map.ts";
 
 // This week's spec: "the player's choices shape what they hear", "a stranger
@@ -48,6 +50,22 @@ describe("gesture -> sound mapping (audio-map.ts)", () => {
     expect(clamp(-1, 0, 10)).toBe(0);
     expect(clamp(11, 0, 10)).toBe(10);
     expect(clamp(5, 0, 10)).toBe(5);
+  });
+
+  it("pans left/right with horizontal position and never exceeds the stereo field", () => {
+    expect(xToPan(0, 1000)).toBeCloseTo(-1);
+    expect(xToPan(1000, 1000)).toBeCloseTo(1);
+    expect(xToPan(500, 1000)).toBeCloseTo(0);
+    expect(xToPan(-500, 1000)).toBe(-1);
+    expect(xToPan(1500, 1000)).toBe(1);
+  });
+
+  it("a longer hold sustains longer, within a bounded range", () => {
+    const short = holdDurationToDecay(0);
+    const long = holdDurationToDecay(5000);
+    expect(long).toBeGreaterThan(short);
+    expect(short).toBeGreaterThan(0);
+    expect(long).toBeLessThanOrEqual(holdDurationToDecay(100000));
   });
 });
 
